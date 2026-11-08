@@ -1,0 +1,8 @@
+loaded 10000 test images (28x28, 10 classes)
+
+CPU reference
+  accuracy           0.9866  (9866 / 10000)
+  matches PyTorch    10000 / 10000 predictions, max |logit diff| = 1.34e-05
+  time (best of 3)   954.96 ms for 10000 images  ->  10472 images/s, 23.874 ms per batch of 256
+  verification       PASS
+

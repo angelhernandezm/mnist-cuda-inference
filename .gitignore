@@ -1,0 +1,8 @@
+# Generated: rebuild with python/train.py and python/export.py
+data/
+models/
+artifacts/
+
+.venv/
+__pycache__/
+cpp/build*/
