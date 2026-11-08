@@ -37,7 +37,11 @@ if(CMAKE_CUDA_COMPILER)
     find_package(CUDAToolkit REQUIRED)
     target_sources(mnist_infer PRIVATE src/cuda_engine.cu)
     target_compile_definitions(mnist_infer PRIVATE MNIST_HAVE_CUDA)
-    target_compile_options(mnist_infer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-O3 -lineinfo>)
+    # Debug: device debug info (-G) so Nsight can step through kernels.
+    # Release: optimised, with line info so Nsight Compute can map time to source lines.
+    target_compile_options(mnist_infer PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>"
+        "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<NOT:$<CONFIG:Debug>>>:-O3;-lineinfo>")
     target_link_libraries(mnist_infer PRIVATE CUDA::cudart)
     message(STATUS "CUDA engine: enabled (architectures: ${CMAKE_CUDA_ARCHITECTURES})")
 else()

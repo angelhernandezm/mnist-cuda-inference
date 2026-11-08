@@ -161,10 +161,43 @@ Things to look for:
   overhead, not GPU work.
 - fp16 in the PyTorch benchmark gives a first look at reduced precision on the GPU.
 
+## Debugging kernels in Visual Studio (Nsight Visual Studio Edition)
+
+Nsight Visual Studio Edition installs with the CUDA Toolkit when Visual Studio is present.
+It adds an **Extensions → Nsight** menu (just **Nsight** in some versions) and lets you put
+breakpoints *inside* CUDA kernels. Generate a Visual Studio solution, in its own build
+folder so it doesn't clash with CLion's:
+
+```bat
+cmake -S cpp -B cpp\build-vs -G "Visual Studio 17 2022" -A x64
+start cpp\build-vs\mnist_infer.sln
+```
+
+1. Right-click **mnist_infer**, choose **Set as Startup Project**, and select the **Debug**
+   configuration. Debug builds compile kernels with `-G` (device debug info); Release builds
+   use `-O3 -lineinfo` for profiling.
+2. In **Properties → Debugging**, set **Command Arguments** to
+   `--artifacts ..\..\artifacts --engine cuda --batch 8 --repeat 1`.
+   Use a small batch, because `-G` kernels are much slower.
+3. Put a breakpoint inside `conv3x3_relu_pool2` in `cuda_engine.cu`, then use
+   **Nsight → Start CUDA Debugging (Next-Gen)**. Plain F5 only debugs the host code.
+4. When it stops, look at `threadIdx`, `blockIdx`, `acc[]` and the shared-memory `tile` in
+   the Watch/Locals windows, and use **Nsight → Windows → Warp Info** to switch between
+   threads. A breakpoint condition such as
+   `threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.z == 0` stops on one thread only.
+
+Check for memory errors and shared-memory races (for example a missing `__syncthreads()`)
+with Compute Sanitizer, which comes with the toolkit:
+
+```bat
+compute-sanitizer --tool memcheck  cpp\build-vs\Debug\mnist_infer.exe --artifacts artifacts --engine cuda --batch 8 --repeat 1
+compute-sanitizer --tool racecheck cpp\build-vs\Debug\mnist_infer.exe --artifacts artifacts --engine cuda --batch 8 --repeat 1
+```
+
 ## Profiling with Nsight
 
-The CUDA Toolkit includes NVIDIA's profilers. The build uses `-lineinfo`, so they can map
-time back to source lines:
+Profile **Release** builds only: Debug kernels with `-G` are unoptimised, so their timings
+mean nothing. The build uses `-lineinfo`, so the profilers can map time back to source lines:
 
 ```bat
 nsys profile -o timeline cpp\build\Release\mnist_infer.exe --artifacts artifacts --engine cuda
@@ -173,7 +206,17 @@ ncu --set full -o kernels cpp\build\Release\mnist_infer.exe --artifacts artifact
 
 Open `timeline.nsys-rep` in Nsight Systems to see copies and kernels on a timeline, and
 `kernels.ncu-rep` in Nsight Compute for each kernel's memory throughput, occupancy and
-whether it is memory- or compute-bound.
+whether it is memory- or compute-bound. Both are standalone apps; you can also launch the
+program from their GUIs (Nsight Compute: **Connect → Launch**, with the same arguments).
+
+Worth looking at in Nsight Compute:
+
+- **GPU Speed Of Light**: whether each kernel is limited by memory or by compute.
+- **Memory Workload Analysis** for `conv3x3_relu_pool2` against the unfused pair
+  (`--no-fusion`): how many fewer bytes the fused kernel moves to and from DRAM.
+- **Shared memory bank conflicts** in `linear`: change `ws[TILE][TILE + 1]` to
+  `ws[TILE][TILE]`, rebuild, and watch the conflicts appear.
+- The **Source** page: which lines of each kernel take the time.
 
 ## Artifact formats
 
