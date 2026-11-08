@@ -26,8 +26,6 @@
     <_CudaPathTrimmed>$(CUDA_PATH.TrimEnd('\').TrimEnd('/'))</_CudaPathTrimmed>
     <CudaVersion Condition="'$(CudaVersion)' == '' And '$(_CudaPathTrimmed)' != ''">$([System.IO.Path]::GetFileName('$(_CudaPathTrimmed)').TrimStart('v'))</CudaVersion>
     <CUDAPropsPath Condition="'$(CUDAPropsPath)' == ''">$(VCTargetsPath)\BuildCustomizations</CUDAPropsPath>
-    <CudaProps>$(CUDAPropsPath)\CUDA $(CudaVersion).props</CudaProps>
-    <CudaTargets>$(CUDAPropsPath)\CUDA $(CudaVersion).targets</CudaTargets>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -44,8 +42,10 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <!-- Visual Studio reads these two imports literally (Build Customizations), so the
+       paths must be spelled out and end in .props / .targets: no intermediate properties. -->
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(CudaProps)" Condition="Exists('$(CudaProps)')" />
+    <Import Project="$(CUDAPropsPath)\CUDA $(CudaVersion).props" Condition="Exists('$(CUDAPropsPath)\CUDA $(CudaVersion).props')" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="Exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -136,10 +136,10 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(CudaTargets)" Condition="Exists('$(CudaTargets)')" />
+    <Import Project="$(CUDAPropsPath)\CUDA $(CudaVersion).targets" Condition="Exists('$(CUDAPropsPath)\CUDA $(CudaVersion).targets')" />
   </ImportGroup>
   <Target Name="CheckCudaBuildCustomization" BeforeTargets="PrepareForBuild">
     <Error Condition="'$(CudaVersion)' == ''" Text="CUDA_PATH is not set, so the CUDA Toolkit version is unknown. Install the CUDA Toolkit, or set CudaVersion (e.g. 13.0) in the project properties." />
-    <Error Condition="!Exists('$(CudaProps)')" Text="CUDA $(CudaVersion) Visual Studio integration not found at '$(CudaProps)'. Re-run the CUDA Toolkit installer and select 'Visual Studio Integration', or set CudaVersion to an installed version." />
+    <Error Condition="!Exists('$(CUDAPropsPath)\CUDA $(CudaVersion).props')" Text="CUDA $(CudaVersion) Visual Studio integration not found at '$(CUDAPropsPath)\CUDA $(CudaVersion).props'. Re-run the CUDA Toolkit installer and select 'Visual Studio Integration', or set CudaVersion to an installed version." />
   </Target>
 </Project>
