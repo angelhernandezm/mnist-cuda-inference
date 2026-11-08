@@ -6,3 +6,9 @@ artifacts/
 .venv/
 __pycache__/
 cpp/build*/
+
+# Visual Studio
+.vs/
+bin/
+cpp/obj/
+*.vcxproj.user

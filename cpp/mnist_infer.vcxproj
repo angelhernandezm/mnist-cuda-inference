@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Visual C++ project for mnist_infer, with NVIDIA's CUDA build customization.
+  The CUDA Toolkit version is taken from the CUDA_PATH environment variable set by the
+  CUDA installer (e.g. ...\CUDA\v13.0 -> 13.0). To pin another installed version, set
+  CudaVersion in the project properties or pass /p:CudaVersion=12.8 to msbuild.
+  The same sources also build with cpp/CMakeLists.txt (CLion, Linux).
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{31E3F6EA-299D-49FD-B80C-5D018764DA07}</ProjectGuid>
+    <RootNamespace>mnist_infer</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <_CudaPathTrimmed>$(CUDA_PATH.TrimEnd('\').TrimEnd('/'))</_CudaPathTrimmed>
+    <CudaVersion Condition="'$(CudaVersion)' == '' And '$(_CudaPathTrimmed)' != ''">$([System.IO.Path]::GetFileName('$(_CudaPathTrimmed)').TrimStart('v'))</CudaVersion>
+    <CUDAPropsPath Condition="'$(CUDAPropsPath)' == ''">$(VCTargetsPath)\BuildCustomizations</CUDAPropsPath>
+    <CudaProps>$(CUDAPropsPath)\CUDA $(CudaVersion).props</CudaProps>
+    <CudaTargets>$(CUDAPropsPath)\CUDA $(CudaVersion).targets</CudaTargets>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(CudaProps)" Condition="Exists('$(CudaProps)')" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="Exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Configuration)\</IntDir>
+    <!-- Run from the repository root, where python/export.py writes artifacts\ -->
+    <LocalDebuggerWorkingDirectory>$(SolutionDir)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <!-- Debug kernels (-G) are slow: keep the batch small -->
+    <LocalDebuggerCommandArguments>--artifacts artifacts --engine cuda --batch 8 --repeat 1</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerCommandArguments>--artifacts artifacts --engine all --profile</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <OpenMPSupport>true</OpenMPSupport>
+      <PreprocessorDefinitions>MNIST_HAVE_CUDA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <!-- Turing, Ampere, Ada; plus compute_89 PTX so newer GPUs can JIT-compile it -->
+      <CodeGeneration>compute_75,sm_75;compute_86,sm_86;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
+      <Include>$(ProjectDir)include;%(Include)</Include>
+      <Defines>MNIST_HAVE_CUDA;%(Defines)</Defines>
+      <AdditionalOptions>-std=c++17 %(AdditionalOptions)</AdditionalOptions>
+    </CudaCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <CudaCompile>
+      <!-- -G: device debug info, needed to step through kernels with Nsight -->
+      <GPUDebugInfo>true</GPUDebugInfo>
+      <HostDebugInfo>true</HostDebugInfo>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <CudaCompile>
+      <Optimization>O3</Optimization>
+      <!-- -lineinfo: lets Nsight Compute map time to source lines -->
+      <GenerateLineInfo>true</GenerateLineInfo>
+    </CudaCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\model_io.cpp" />
+    <ClCompile Include="src\cpu_engine.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\engine.h" />
+    <ClInclude Include="include\model_io.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\cuda_engine.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CMakeLists.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(CudaTargets)" Condition="Exists('$(CudaTargets)')" />
+  </ImportGroup>
+  <Target Name="CheckCudaBuildCustomization" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(CudaVersion)' == ''" Text="CUDA_PATH is not set, so the CUDA Toolkit version is unknown. Install the CUDA Toolkit, or set CudaVersion (e.g. 13.0) in the project properties." />
+    <Error Condition="!Exists('$(CudaProps)')" Text="CUDA $(CudaVersion) Visual Studio integration not found at '$(CudaProps)'. Re-run the CUDA Toolkit installer and select 'Visual Studio Integration', or set CudaVersion to an installed version." />
+  </Target>
+</Project>

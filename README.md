@@ -63,7 +63,18 @@ python benchmark.py --device cuda    # GPU variants  -> ..\results\benchmark_cud
 
 ### 2. C++/CUDA: build and run the engine
 
-Open **"x64 Native Tools Command Prompt for VS 2022"** (so `cl.exe` and `nvcc` are on PATH):
+**Visual Studio:** open `mnist-cuda-inference.sln`, pick **Release | x64**, and build (F7).
+The project (`cpp\mnist_infer.vcxproj`) uses NVIDIA's CUDA build customization and
+finds your CUDA version from the `CUDA_PATH` variable the installer sets. Run it with
+Ctrl+F5: it starts in the repo root with `--artifacts artifacts --engine all --profile`.
+The executable goes to `bin\Release\mnist_infer.exe`.
+
+If the build says the CUDA Visual Studio integration was not found, re-run the CUDA
+Toolkit installer and tick **Visual Studio Integration** (install CUDA *after* Visual
+Studio), or set `CudaVersion` in the project properties to a version you have installed.
+
+**CMake** (CLion, or the command line): open **"x64 Native Tools Command Prompt for VS 2022"**
+(so `cl.exe` and `nvcc` are on PATH):
 
 ```bat
 cd C:\Code\angelhernandezm\mnist-cuda-inference
@@ -165,20 +176,13 @@ Things to look for:
 
 Nsight Visual Studio Edition installs with the CUDA Toolkit when Visual Studio is present.
 It adds an **Extensions → Nsight** menu (just **Nsight** in some versions) and lets you put
-breakpoints *inside* CUDA kernels. Generate a Visual Studio solution, in its own build
-folder so it doesn't clash with CLion's:
+breakpoints *inside* CUDA kernels.
 
-```bat
-cmake -S cpp -B cpp\build-vs -G "Visual Studio 17 2022" -A x64
-start cpp\build-vs\mnist_infer.sln
-```
-
-1. Right-click **mnist_infer**, choose **Set as Startup Project**, and select the **Debug**
-   configuration. Debug builds compile kernels with `-G` (device debug info); Release builds
-   use `-O3 -lineinfo` for profiling.
-2. In **Properties → Debugging**, set **Command Arguments** to
-   `--artifacts ..\..\artifacts --engine cuda --batch 8 --repeat 1`.
-   Use a small batch, because `-G` kernels are much slower.
+1. Open `mnist-cuda-inference.sln` and select **Debug | x64**. Debug builds compile kernels
+   with `-G` (device debug info); Release builds use `-O3 -lineinfo` for profiling.
+2. The Debug configuration already runs from the repo root with
+   `--artifacts artifacts --engine cuda --batch 8 --repeat 1` (under **Properties →
+   Debugging**). The batch is small because `-G` kernels are much slower.
 3. Put a breakpoint inside `conv3x3_relu_pool2` in `cuda_engine.cu`, then use
    **Nsight → Start CUDA Debugging (Next-Gen)**. Plain F5 only debugs the host code.
 4. When it stops, look at `threadIdx`, `blockIdx`, `acc[]` and the shared-memory `tile` in
@@ -190,8 +194,8 @@ Check for memory errors and shared-memory races (for example a missing `__syncth
 with Compute Sanitizer, which comes with the toolkit:
 
 ```bat
-compute-sanitizer --tool memcheck  cpp\build-vs\Debug\mnist_infer.exe --artifacts artifacts --engine cuda --batch 8 --repeat 1
-compute-sanitizer --tool racecheck cpp\build-vs\Debug\mnist_infer.exe --artifacts artifacts --engine cuda --batch 8 --repeat 1
+compute-sanitizer --tool memcheck  bin\Debug\mnist_infer.exe --artifacts artifacts --engine cuda --batch 8 --repeat 1
+compute-sanitizer --tool racecheck bin\Debug\mnist_infer.exe --artifacts artifacts --engine cuda --batch 8 --repeat 1
 ```
 
 ## Profiling with Nsight
