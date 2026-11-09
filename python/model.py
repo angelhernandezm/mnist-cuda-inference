@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# MNIST normalisation constants, shared with export.py and the C++ engine's test file
+# MNIST normalization constants, shared with export.py and the C++ engine's test file
 MEAN, STD = 0.1307, 0.3081
 
 
