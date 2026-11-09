@@ -38,7 +38,7 @@ if(CMAKE_CUDA_COMPILER)
     target_sources(mnist_infer PRIVATE src/cuda_engine.cu)
     target_compile_definitions(mnist_infer PRIVATE MNIST_HAVE_CUDA)
     # Debug: device debug info (-G) so Nsight can step through kernels.
-    # Release: optimised, with line info so Nsight Compute can map time to source lines.
+    # Release: optimized, with line info so Nsight Compute can map time to source lines.
     target_compile_options(mnist_infer PRIVATE
         "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>"
         "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<NOT:$<CONFIG:Debug>>>:-O3;-lineinfo>")

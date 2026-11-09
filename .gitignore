@@ -12,3 +12,6 @@ cpp/build*/
 bin/
 cpp/obj/
 *.vcxproj.user
+/python/.idea/inspectionProfiles
+/python/.idea
+/cpp/x64

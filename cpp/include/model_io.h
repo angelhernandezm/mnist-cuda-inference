@@ -27,6 +27,6 @@ struct TestSet {
 
     uint32_t count = 0, rows = 0, cols = 0, classes = 0;
     std::vector<uint8_t> labels;    // [count]
-    std::vector<float> images;      // [count, 1, rows, cols], already normalised
+    std::vector<float> images;      // [count, 1, rows, cols], already normalized
     std::vector<float> ref_logits;  // [count, classes], computed by PyTorch
 };
