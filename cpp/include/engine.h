@@ -1,4 +1,4 @@
-// Inference engines for the MNIST CNN. Both take normalised images
+// Inference engines for the MNIST CNN. Both take normalized images
 // [n, 1, 28, 28] and write logits [n, 10], with the same maths as python/model.py.
 #pragma once
 
